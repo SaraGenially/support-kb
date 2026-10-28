@@ -20,6 +20,9 @@ export type Tenant = { handle: string; name: string; locale: string; form: 'book
 export type Cause = 'parser' | 'hint';
 export const CAUSES: readonly Cause[] = ['parser', 'hint'];
 
+export type Problem = Cause | 'shift';
+export const PROBLEMS: readonly Problem[] = ['parser', 'hint', 'shift'];
+
 // What each booking form prints under its date field.
 const DATE_HINT: Record<Tenant['form'], string> = {
   'booking-v2': 'DD/MM/YYYY',
@@ -42,6 +45,10 @@ export function causeOf(r: Pick<Report, 'channel'>, t: Tenant | undefined): Caus
   return r.channel === 'form' && DATE_HINT[t.form].startsWith('MM') ? 'hint' : 'parser';
 }
 
+export function problemOf(r: Pick<Report, 'id' | 'channel'>, t: Tenant | undefined, shifted: readonly string[]): Problem | null {
+  return shifted.includes(r.id) ? 'shift' : causeOf(r, t);
+}
+
 export function sameCause(a: Pick<Report, 'channel'>, ta: Tenant | undefined, b: Pick<Report, 'channel'>, tb: Tenant | undefined): boolean {
   const ca = causeOf(a, ta);
   return ca !== null && ca === causeOf(b, tb);
@@ -53,7 +60,7 @@ export function uniqueById(reports: Report[]): Report[] {
 }
 
 export type CauseGroup = {
-  cause: Cause | 'unplaced';
+  cause: Problem | 'unplaced';
   reports: Report[];
   // What intake tagged these reports as: tag → count.
   taggedAs: Record<string, number>;
@@ -64,9 +71,17 @@ export type CauseGroup = {
 };
 
 export function groupByCause(reports: Report[], tenantOf: (r: Report) => Tenant | undefined): CauseGroup[] {
+  return groupBy(reports, (r) => causeOf(r, tenantOf(r)));
+}
+
+export function groupByProblem(reports: Report[], tenantOf: (r: Report) => Tenant | undefined, shifted: readonly string[]): CauseGroup[] {
+  return groupBy(reports, (r) => problemOf(r, tenantOf(r), shifted));
+}
+
+function groupBy(reports: Report[], classify: (r: Report) => Problem | null): CauseGroup[] {
   const byCause = new Map<CauseGroup['cause'], Report[]>();
   for (const r of reports) {
-    const cause = causeOf(r, tenantOf(r)) ?? 'unplaced';
+    const cause = classify(r) ?? 'unplaced';
     byCause.set(cause, [...(byCause.get(cause) ?? []), r]);
   }
   return [...byCause.entries()]

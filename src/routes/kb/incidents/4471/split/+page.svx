@@ -1,0 +1,62 @@
+---
+layout: runbook
+title: '#4471 split · three problems, not one'
+owner: Sara Martin
+status: accepted
+reviewed: 2026-10-28
+signature: v1.eyJzdWIiOiIxNzg0IiwiYXVkIjoiY2hhbGxlbmdlOndoYXQtaXQtc2hvd3MiLCJpYXQiOjE3OTMxNzk1MDgsImV4cCI6MTc5MzI2NTkwOH0.GHn-drJjw8QmycEhpoHL0QRn-4Zh6v0WwHytDO6cl7c
+---
+
+<script>
+  import ProblemTable from '#lib/kb/ProblemTable.svelte';
+  import Callout from '#lib/kb/Callout.svelte';
+  import RenderStamp from '#lib/kb/RenderStamp.svelte';
+</script>
+
+[#4471](/kb/incidents/4471) was merged on subject lines and marked known: one bug, one fix
+queued. Its reports hold three problems. The queued parser fix closes only the first one.
+Each problem now has its own ticket.
+
+<ProblemTable ticket={4471} />
+
+<Callout kind="warn">
+Fixing the parser does not close #4471. The other two problems keep sending reports until
+their own fixes ship.
+</Callout>
+
+## `parser` · the shared parser reads every date month first
+
+Every tenant on file writes the day first. The shared parser reads month first, so day and
+month swap: 4 March becomes 3 April. Reports come through every channel. Intake tagged
+some of these `hint` from the reporter's browser; the tenant decides the cause, not the browser.
+
+## `hint` · booking-v3 tells day-first people to type month first
+
+booking-v3 prints `MM/DD/YYYY` under its date field. The tenant's people type what the hint
+says, and the form reads the date the tenant's way, day first. Only reports sent through the
+form of a booking-v3 tenant belong here. The parser fix does not touch it: the form needs a
+hint in the tenant's own order.
+
+## `shift` · the date moves by one day
+
+These reports describe no swap. The date moves one day earlier, and it
+depends on where the reader is: a client in Lisbon saw Tuesday, a client in Toronto saw Monday,
+for the same meeting. One invite arrived before its booking existed. This looks like a date
+converted across time zones at midnight. The desk read these as a one-day move
+([desk notes](https://github.com/SaraGenially/support-kb/blob/main/src/lib/data/desk-notes.json)),
+but the #4471 table still counts them under `parser` by tenant.
+
+## How this was counted
+
+- One id, one report: the export pages overlap.
+- The cause comes from the tenant (locale and booking form) and the channel, never from the
+  intake tag.
+- The one-day moves come from the desk's own notes, checked against each report's text.
+
+## Lessons
+
+- A subject line says how a problem looks, not what causes it. Read the bodies before a big
+  ticket is marked known.
+- When a fix ships, check which reports it really covers.
+
+<RenderStamp {signature} />
