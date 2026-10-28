@@ -2,21 +2,22 @@
   import reports from '#lib/data/reports-4471.json';
   import notes from '#lib/data/desk-notes.json';
   import split from '#lib/data/tickets-4471.json';
-  import { groupByProblem, uniqueById, type Report } from '#lib/kb/causes';
+  import { groupByCause, summarize, uniqueById, type Report } from '#lib/kb/causes';
   import { tenantOf } from '#lib/kb/locales';
 
   let { ticket }: { ticket: number } = $props();
 
   const exported = $derived((reports as Report[]).filter((r) => r.mergedInto === ticket));
   const merged = $derived(uniqueById(exported));
-  const groups = $derived(groupByProblem(merged, tenantOf, notes.oneDayMove));
+  const shifted = $derived(summarize('shift', merged.filter((r) => notes.oneDayMove.includes(r.id))));
+  const groups = $derived([...groupByCause(merged, tenantOf), shifted]);
+  const filedUnder = $derived(groupByCause(shifted.reports, tenantOf).map((g) => g.cause));
   const ticketOf = (cause: string) => split.tickets.find((t) => t.problem === cause);
 </script>
 
 <p class="sum">
   <strong>{merged.length}</strong> reports merged into #{ticket} ·
-  <strong>{groups.length}</strong>
-  {groups.length === 1 ? 'problem' : 'problems'}
+  <strong>{groups.length}</strong> problems
 </p>
 <p class="note">
   The export lists {exported.length} rows for #{ticket}: {exported.length - merged.length} reports come twice and count once.
@@ -41,6 +42,12 @@
     {/each}
   </tbody>
 </table>
+
+<p class="note">
+  Counted the desk's way: each report under the cause of its tenant and channel. The
+  {shifted.reports.length} <code>shift</code> reports are filed under <code>{filedUnder.join(', ')}</code> too, so the
+  rows add up to more than {merged.length}.
+</p>
 
 <style>
   .sum { font-size: 1.1rem; margin-bottom: 0; }

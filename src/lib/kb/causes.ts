@@ -21,7 +21,6 @@ export type Cause = 'parser' | 'hint';
 export const CAUSES: readonly Cause[] = ['parser', 'hint'];
 
 export type Problem = Cause | 'shift';
-export const PROBLEMS: readonly Problem[] = ['parser', 'hint', 'shift'];
 
 // What each booking form prints under its date field.
 const DATE_HINT: Record<Tenant['form'], string> = {
@@ -43,10 +42,6 @@ export function dayFirst(locale: string): boolean {
 export function causeOf(r: Pick<Report, 'channel'>, t: Tenant | undefined): Cause | null {
   if (!t || !dayFirst(t.locale)) return null;
   return r.channel === 'form' && DATE_HINT[t.form].startsWith('MM') ? 'hint' : 'parser';
-}
-
-export function problemOf(r: Pick<Report, 'id' | 'channel'>, t: Tenant | undefined, shifted: readonly string[]): Problem | null {
-  return shifted.includes(r.id) ? 'shift' : causeOf(r, t);
 }
 
 export function sameCause(a: Pick<Report, 'channel'>, ta: Tenant | undefined, b: Pick<Report, 'channel'>, tb: Tenant | undefined): boolean {
@@ -71,33 +66,25 @@ export type CauseGroup = {
 };
 
 export function groupByCause(reports: Report[], tenantOf: (r: Report) => Tenant | undefined): CauseGroup[] {
-  return groupBy(reports, (r) => causeOf(r, tenantOf(r)));
-}
-
-export function groupByProblem(reports: Report[], tenantOf: (r: Report) => Tenant | undefined, shifted: readonly string[]): CauseGroup[] {
-  return groupBy(reports, (r) => problemOf(r, tenantOf(r), shifted));
-}
-
-function groupBy(reports: Report[], classify: (r: Report) => Problem | null): CauseGroup[] {
   const byCause = new Map<CauseGroup['cause'], Report[]>();
   for (const r of reports) {
-    const cause = classify(r) ?? 'unplaced';
+    const cause = causeOf(r, tenantOf(r)) ?? 'unplaced';
     byCause.set(cause, [...(byCause.get(cause) ?? []), r]);
   }
-  return [...byCause.entries()]
-    .map(([cause, rs]) => {
-      const days = rs.map((r) => r.receivedAt.slice(0, 10)).sort();
-      return {
-        cause,
-        reports: rs,
-        taggedAs: rs.reduce<Record<string, number>>((n, r) => ({ ...n, [r.meta.intakeTag]: (n[r.meta.intakeTag] ?? 0) + 1 }), {}),
-        tenants: new Set(rs.map((r) => r.tenant)).size,
-        firstSeen: days[0],
-        lastSeen: days[days.length - 1],
-        mergedInto: [...new Set(rs.flatMap((r) => (r.mergedInto ? [r.mergedInto] : [])))],
-      };
-    })
-    .sort((a, b) => b.reports.length - a.reports.length);
+  return [...byCause.entries()].map(([cause, rs]) => summarize(cause, rs)).sort((a, b) => b.reports.length - a.reports.length);
+}
+
+export function summarize(cause: CauseGroup['cause'], rs: Report[]): CauseGroup {
+  const days = rs.map((r) => r.receivedAt.slice(0, 10)).sort();
+  return {
+    cause,
+    reports: rs,
+    taggedAs: rs.reduce<Record<string, number>>((n, r) => ({ ...n, [r.meta.intakeTag]: (n[r.meta.intakeTag] ?? 0) + 1 }), {}),
+    tenants: new Set(rs.map((r) => r.tenant)).size,
+    firstSeen: days[0],
+    lastSeen: days[days.length - 1],
+    mergedInto: [...new Set(rs.flatMap((r) => (r.mergedInto ? [r.mergedInto] : [])))],
+  };
 }
 
 // A ticket is the cause most of its reports share; the rest were merged into the wrong place.

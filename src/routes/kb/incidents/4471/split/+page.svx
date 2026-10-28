@@ -43,14 +43,15 @@ These reports describe no swap. The date moves one day earlier, and it
 depends on where the reader is: a client in Lisbon saw Tuesday, a client in Toronto saw Monday,
 for the same meeting. One invite arrived before its booking existed. This looks like a date
 converted across time zones at midnight. The desk read these as a one-day move
-([desk notes](https://github.com/SaraGenially/support-kb/blob/main/src/lib/data/desk-notes.json)),
-but the #4471 table still counts them under `parser` by tenant.
+([desk notes](https://github.com/SaraGenially/support-kb/blob/main/src/lib/data/desk-notes.json)).
+The desk counts them where they are filed, under `parser` by tenant, so they appear in both rows.
 
 ## How this was counted
 
 - One id, one report: the export pages overlap.
 - The cause comes from the tenant (locale and booking form) and the channel, never from the
   intake tag.
+- Counts follow the desk's own view, as exported: a report sits under the cause of its tenant.
 - The one-day moves come from the desk's own notes, checked against each report's text.
 
 ## Lessons
