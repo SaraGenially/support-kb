@@ -1,4 +1,8 @@
 {
   "repo": "SaraGenially/support-kb",
-  "tickets": []
+  "tickets": [
+    { "problem": "parser", "issue": 1 },
+    { "problem": "hint", "issue": 2 },
+    { "problem": "shift", "issue": 3 }
+  ]
 }

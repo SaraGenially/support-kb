@@ -34,3 +34,13 @@ Support desk. Decision records: whoever signed them.
 ---
 
 Exported 2026-10-04 from the `support` repo, `apps/kb/` → `src/`.
+
+## #4471 split
+
+The page [`src/routes/kb/incidents/4471/split/+page.svx`](src/routes/kb/incidents/4471/split/+page.svx) splits #4471 into its three problems, one ticket each: [#1](../../issues/1) `parser`, [#2](../../issues/2) `hint`, [#3](../../issues/3) `shift`.
+
+As the desk sees it: [`rendered/kb/incidents/4471/split/index.html`](rendered/kb/incidents/4471/split/index.html), and a screenshot:
+
+![#4471 split, rendered](rendered/kb/incidents/4471/split/page.png)
+
+Build: `npm install`, then `npm run build` writes the site to `rendered/`. `npm run preview` serves it.
